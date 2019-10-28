@@ -18,6 +18,7 @@ I've included a number of imports that I think you'll need.
 """
 import torch
 import matplotlib
+import random
 import matplotlib.pyplot as plt
 import gym
 from network import network_factory
@@ -63,6 +64,73 @@ def sliding_window(data, N):
 
     return smoothed
 
+def plot_means_1(returns_over_runs, runs, episodes):
+    ep_returns_means = []
+    ep_returns_stds = []
+
+    run_3 = random.sample(range(0, runs), 3)
+    run_10 = random.sample(range(0, runs), 10)
+
+    fig, ax = plt.subplots(1)
+
+    x = np.arange(1, episodes+1)
+
+    # averaging 3 plots
+    mean = np.mean(returns_over_runs[run_3], axis=0)
+    std = np.std(returns_over_runs[run_3], axis=0) / np.sqrt(3)
+
+    y =  sliding_window(mean, 100)
+
+    ax.plot(x, y, lw=2, color='blue' , label='3 averaged runs')
+    ax.fill_between(x, y-std , y+std, facecolor='blue', alpha=0.1)
+
+    # averaging 10 plots
+    mean = np.mean(returns_over_runs[run_10], axis=0)
+    std = np.std(returns_over_runs[run_10], axis=0) / np.sqrt(10)
+
+    y =  sliding_window(mean, 100)
+
+    ax.plot(x, y, lw=2, color='green', label='10 averaged runs')
+    ax.fill_between(x, y-std , y+std, facecolor='green', alpha=0.1)
+
+    # averaging 30 plots
+    mean = np.mean(returns_over_runs, axis=0)
+    std = np.std(returns_over_runs, axis=0)/ np.sqrt(30)
+
+    y =  sliding_window(mean, 100)
+
+    ax.plot(x, y, lw=2, color='red', label='30 averaged runs')
+    ax.fill_between(x, y-std , y+std, facecolor='red', alpha=0.1)
+
+    # drawing all in one figure
+    ax.set_title("Episode Return")
+    ax.set_ylabel("Average Return (Sliding Window 100)")
+    ax.set_xlabel("Episode")
+    ax.set_title('Line plot with error bars')
+    ax.legend(loc = 'best')
+
+    plt.show()
+
+def compute_means_2(returns_over_runs, runs):
+    ep_returns_means = []
+    ep_returns_stds = []
+
+    indices = list(range(0,runs)) # list of integers from 0 to 29
+
+    print(indices)
+    random.shuffle(indices)
+    print(indices)
+    i = 0
+    while i < 30:
+        ep_returns.append(list(np.mean(returns_over_runs[indices[i,i+2]], axis=0)))
+        i += 1
+
+    # print(ep_returns[45])
+    # print(returns_over_runs[0][45])
+    # print(returns_over_runs[1][45])
+    # print(returns_over_runs[2][45])
+
+    return list(ep_returns)
 
 
 if __name__ == '__main__':
@@ -72,9 +140,9 @@ if __name__ == '__main__':
     python main.py --episodes 10000
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes", "-e", default=1000, type=int, help="Number of episodes to train for")
+    parser.add_argument("--episodes", "-e", default=10, type=int, help="Number of episodes to train for")
     parser.add_argument("--gamma", "-g", default=1, type=int, help="Gamma")
-    parser.add_argument("--timesteps", "-T", default=1000, type=int, help="Number of steps per episode")
+    parser.add_argument("--timesteps", "-T", default=100, type=int, help="Number of steps per episode")
 
     args = parser.parse_args()
 
@@ -82,12 +150,6 @@ if __name__ == '__main__':
     gamma = args.gamma
     T = args.timesteps
 
-    """
-    It is unlikely that the GPU will help in this instance (since the size of individual operations is small) - in fact
-    there's a good chance it could slow things down because we have to move data back and forth between CPU and GPU.
-    Regardless I'm leaving this in here. For those of you with GPUs this will mean that you will need to move your
-    tensors to GPU.
-    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     env = make_env()
@@ -95,109 +157,105 @@ if __name__ == '__main__':
     in_size = env.observation_space.shape[0]
     num_actions = env.action_space.n
 
-    network = network_factory(in_size=in_size, num_actions=num_actions, env=env)
-    network.to(device)
-
-    print(network)
-    # alpha_w, alpha_theta are the same
-    optimizer = torch.optim.Adam(network.parameters(), lr=0.01)
-    # TODO: after each episode add the episode return (the total sum of the undiscounted rewards received in the
-    #  episode) to this list.
-    ep_returns = []
-
     eps = np.finfo(np.float32).eps.item()
 
     # updating per each time step or per episode
-    batch_update = False
+    batch_update = True
 
     writer = SummaryWriter()
+    runs = 30
 
-    for ep in range(episodes):
-        episode_reward = []
-        log_probs = []
-        state_values = []
+    returns_over_runs = np.zeros(shape=(runs, episodes))
+    for run in range(runs):
 
-        R = 0
-        total_reward = 0
+        network = network_factory(in_size=in_size, num_actions=num_actions, env=env)
+        network.to(device)
 
-        print("############### Starting Episode: " , ep)
+        print(network)
+        # alpha_w, alpha_theta are the same
+        optimizer = torch.optim.Adam(network.parameters(), lr=0.01)
 
-        state = env.reset()
-        for t in range(1, T):
-            action, a_log_prob, state_value = network.get_action(torch.from_numpy(state).float().unsqueeze(0))
-            # print(action)
-            state, reward, done, _  = env.step(action)
-            total_reward += reward
+        ep_returns = []
 
-            episode_reward.append(reward)
-            log_probs.append(a_log_prob)
-            state_values.append(state_value)
+        for ep in range(episodes):
+            episode_reward = []
+            log_probs = []
+            state_values = []
 
-            if done:
-                break
+            R = 0
+            total_reward = 0
 
-            # env.render()
+            print("############### Starting Episode: " , ep)
 
-            if not batch_update:
-                R = reward + (gamma * R)
-                policy_loss = -1* a_log_prob * (R - state_value.item())
-                value_loss = torch.nn.functional.mse_loss(state_value, torch.tensor([R]), reduction='mean')
+            state = env.reset()
+            for t in range(1, T):
+                action, a_log_prob, state_value = network.get_action(torch.from_numpy(state).float().unsqueeze(0))
 
-                loss = policy_loss + value_loss
+                state, reward, done, _  = env.step(action)
+                total_reward += reward
 
-                print(loss.item())
+                episode_reward.append(reward)
+                log_probs.append(a_log_prob)
+                state_values.append(state_value)
 
+                if done:
+                    break
+
+                # env.render()
+
+                if not batch_update:
+                    R = reward + (gamma * R)
+                    policy_loss = -1* a_log_prob * (R - state_value.item())
+                    value_loss = torch.nn.functional.mse_loss(state_value, torch.tensor([R]), reduction='mean')
+
+                    loss = policy_loss + value_loss
+
+                    print(loss.item())
+
+                    loss.backward()
+                    optimizer.step()
+
+            if batch_update:
+                G = []
+                for r in episode_reward:
+                    R = r + gamma * R
+                    G.insert(0, R)
+
+                G = torch.tensor(G)
+
+                # apply whitening
+                # G = (G - G.mean()) / (G.std() + eps) # To have small values of Loss
+                # print("after", G[0])
+
+                p_losses  = []
+                v_losses = []
+
+                for a_log_prob, state_value, R in zip(log_probs, state_values, G):
+                    p_losses.append(-1 * a_log_prob * (R - state_value.item()))
+                    v_losses.append(torch.nn.functional.mse_loss(state_value, torch.tensor([R]), reduction='mean'))
+
+                optimizer.zero_grad()
+
+                loss = torch.stack(p_losses).sum() + torch.stack(v_losses).sum()
+                # print(loss.item())
                 loss.backward()
                 optimizer.step()
 
-        if batch_update:
-            G = []
-            for r in episode_reward:
-                R = r + gamma * R
-                G.insert(0, R)
+            ep_returns.append(total_reward)
 
-            # print("before", G[0])
-            G = torch.tensor(G)
+            returns_over_runs[run][ep] = total_reward
 
-            # G = (G - G.mean()) / (G.std() + eps) # To have small values of Loss
-            # print("after", G[0])
-
-            p_losses  = []
-            v_losses = []
-
-            for a_log_prob, state_value, R in zip(log_probs, state_values, G):
-                p_losses.append(-1 * a_log_prob * (R - state_value.item()))
-                v_losses.append(torch.nn.functional.mse_loss(state_value, torch.tensor([R]), reduction='mean'))
-
-            optimizer.zero_grad()
-
-            loss = torch.stack(p_losses).sum() + torch.stack(v_losses).sum()
-            # print(loss.item())
-            loss.backward()
-            optimizer.step()
-
-        # print("Final Episode Return: ", episode_reward/t)
-        # running_reward = 0.05 * total_reward + (1 - 0.05) * total_reward
-
-        ep_returns.append(total_reward)
-
-        # log results
-        # print('Episode {}\tLast reward: {:.2f}\tAverage reward: {:.2f}'.format(ep, total_reward, running_reward))
-        #
-        # # check if we have "solved" the cart pole problem
-        # if running_reward > env.spec.reward_threshold:
-        #     print("Solved! Running reward is now {} and "
-        #           "the last episode runs to {} time steps!".format(running_reward, t))
-        #     break
+    plot_means_1(returns_over_runs, runs, episodes)
+    # plot_means_2(returns_over_runs, runs)
 
     # writer.add_scalar('Average Returns per episode', sliding_window(ep_returns, 100), episodes)
 
-    plt.plot(sliding_window(ep_returns, 100))
-    plt.title("Episode Return")
-    plt.xlabel("Episode")
-    plt.ylabel("Average Return (Sliding Window 100)")
+    # plt.plot(sliding_window(ep_returns, 100))
+    # plt.title("Episode Return")
+    # plt.xlabel("Episode")
+    # plt.ylabel("Average Return (Sliding Window 100)")
+    # plt.show()
 
-    plt.show()
-
-    # TODO: save your network
+    # save the trained network
     torch.save(network, 'model.pt')
+    torch.save(network.state_dict(), 'checkpoint.pkl')
