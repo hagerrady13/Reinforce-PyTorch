@@ -39,7 +39,7 @@ if __name__ == '__main__':
     python main.py --episodes 10000
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes", "-e", default=5000, type=int, help="Number of episodes to train for")
+    parser.add_argument("--episodes", "-e", default=5, type=int, help="Number of episodes to train for")
     parser.add_argument("--gamma", "-g", default=1, type=int, help="Gamma")
     parser.add_argument("--timesteps", "-T", default=1000, type=int, help="Number of steps per episode")
 
@@ -104,50 +104,49 @@ if __name__ == '__main__':
 
                 # env.render()
 
-            if batch_update:
-                G = []
-                for r in episode_reward:
-                    R = r + gamma * R
-                    G.insert(0, R)
+            G = []
+            for r in episode_reward:
+                R = r + gamma * R
+                G.insert(0, R)
 
-                G = torch.tensor(G)
+            G = torch.tensor(G)
 
-                # apply whitening
-                # G = (G - G.mean()) / (G.std() + eps) # To have small values of Loss
+            # apply whitening
+            # G = (G - G.mean()) / (G.std() + eps) # To have small values of Loss
 
-                p_losses  = []
-                v_losses = []
+            p_losses  = []
+            v_losses = []
 
-                for a_log_prob, state_value, R in zip(log_probs, state_values, G):
-                    p_losses.append(-1 * a_log_prob * (R - state_value.item()))
-                    v_losses.append(torch.nn.functional.mse_loss(state_value, torch.tensor([R]), reduction='mean'))
+            for a_log_prob, state_value, R in zip(log_probs, state_values, G):
+                p_losses.append(-1 * a_log_prob * (R - state_value.item()))
+                v_losses.append(torch.nn.functional.mse_loss(state_value, torch.tensor([R]), reduction='mean'))
 
-                optimizer.zero_grad()
+            optimizer.zero_grad()
 
-                policy_loss = torch.stack(p_losses).sum()
-                value_loss =  torch.stack(v_losses).sum()
-                loss = policy_loss + value_loss
-                # print(loss.item())
-                loss.backward()
-                optimizer.step()
+            policy_loss = torch.stack(p_losses).sum()
+            value_loss =  torch.stack(v_losses).sum()
+            loss = policy_loss + value_loss
+            # print(loss.item())
+            loss.backward()
+            optimizer.step()
 
-                # tensorboard Plotting
-                if runs == 1:
-                    writer.add_scalar('Loss/total', loss, ep)
-                    writer.add_scalar('Loss/Policy', policy_loss, ep)
-                    writer.add_scalar('Loss/StateValue', value_loss, ep)
+            # tensorboard Plotting
+            if runs == 1:
+                writer.add_scalar('Loss/total', loss, ep)
+                writer.add_scalar('Loss/Policy', policy_loss, ep)
+                writer.add_scalar('Loss/StateValue', value_loss, ep)
 
-                    writer.add_scalar('ValueModel/Linear1.weight', torch.mean(network.v1.weight.grad)**2, ep)
-                    writer.add_scalar('ValueModel/Linear2.weight', torch.mean(network.v2.weight.grad)**2, ep)
+                writer.add_scalar('ValueModel/Linear1.weight', torch.mean(network.v1.weight.grad)**2, ep)
+                writer.add_scalar('ValueModel/Linear2.weight', torch.mean(network.v2.weight.grad)**2, ep)
 
-                    writer.add_scalar('ValueModel/Linear1.bias', torch.mean(network.v1.bias.grad)**2, ep)
-                    writer.add_scalar('ValueModel/Linear2.bias', torch.mean(network.v2.bias.grad)**2, ep)
+                writer.add_scalar('ValueModel/Linear1.bias', torch.mean(network.v1.bias.grad)**2, ep)
+                writer.add_scalar('ValueModel/Linear2.bias', torch.mean(network.v2.bias.grad)**2, ep)
 
-                    writer.add_scalar('policy/Linear1.weight', torch.mean(network.p1.weight.grad)**2, ep)
-                    writer.add_scalar('policy/Linear2.weight', torch.mean(network.p2.weight.grad)**2, ep)
+                writer.add_scalar('policy/Linear1.weight', torch.mean(network.p1.weight.grad)**2, ep)
+                writer.add_scalar('policy/Linear2.weight', torch.mean(network.p2.weight.grad)**2, ep)
 
-                    writer.add_scalar('policy/Linear1.bias', torch.mean(network.p1.bias.grad)**2, ep)
-                    writer.add_scalar('policy/Linear2.bias', torch.mean(network.p2.bias.grad)**2, ep)
+                writer.add_scalar('policy/Linear1.bias', torch.mean(network.p1.bias.grad)**2, ep)
+                writer.add_scalar('policy/Linear2.bias', torch.mean(network.p2.bias.grad)**2, ep)
 
             ep_returns.append(total_reward)
 
