@@ -27,15 +27,18 @@ import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 import os
+import utils
 
 # prevents type-3 fonts, which some conferences disallow.
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 matplotlib.use('TkAgg')
 
+seed = 999
 
 def make_env():
     env = gym.make('CartPole-v0')
+    env.seed(seed)
     return env
 
 
@@ -64,85 +67,15 @@ def sliding_window(data, N):
 
     return smoothed
 
-def plot_means_1(returns_over_runs, runs, episodes):
-    ep_returns_means = []
-    ep_returns_stds = []
-
-    run_3 = random.sample(range(0, runs), 3)
-    run_10 = random.sample(range(0, runs), 10)
-
-    fig, ax = plt.subplots(1)
-
-    x = np.arange(1, episodes+1)
-
-    # averaging 3 plots
-    mean = np.mean(returns_over_runs[run_3], axis=0)
-    std = np.std(returns_over_runs[run_3], axis=0) / np.sqrt(3)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='blue' , label='3 averaged runs')
-    ax.fill_between(x, y-std , y+std, facecolor='blue', alpha=0.1)
-
-    # averaging 10 plots
-    mean = np.mean(returns_over_runs[run_10], axis=0)
-    std = np.std(returns_over_runs[run_10], axis=0) / np.sqrt(10)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='green', label='10 averaged runs')
-    ax.fill_between(x, y-std , y+std, facecolor='green', alpha=0.1)
-
-    # averaging 30 plots
-    mean = np.mean(returns_over_runs, axis=0)
-    std = np.std(returns_over_runs, axis=0)/ np.sqrt(30)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='red', label='30 averaged runs')
-    ax.fill_between(x, y-std , y+std, facecolor='red', alpha=0.1)
-
-    # drawing all in one figure
-    ax.set_title("Episode Return")
-    ax.set_ylabel("Average Return (Sliding Window 100)")
-    ax.set_xlabel("Episode")
-    ax.set_title('Line plot with error bars')
-    ax.legend(loc = 'best')
-
-    plt.show()
-
-def compute_means_2(returns_over_runs, runs):
-    ep_returns_means = []
-    ep_returns_stds = []
-
-    indices = list(range(0,runs)) # list of integers from 0 to 29
-
-    print(indices)
-    random.shuffle(indices)
-    print(indices)
-    i = 0
-    while i < 30:
-        ep_returns.append(list(np.mean(returns_over_runs[indices[i,i+2]], axis=0)))
-        i += 1
-
-    # print(ep_returns[45])
-    # print(returns_over_runs[0][45])
-    # print(returns_over_runs[1][45])
-    # print(returns_over_runs[2][45])
-
-    return list(ep_returns)
-
-
 if __name__ == '__main__':
 
     """
-    You are free to add additional command line arguments, but please ensure that the script will still run with:
     python main.py --episodes 10000
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes", "-e", default=10, type=int, help="Number of episodes to train for")
+    parser.add_argument("--episodes", "-e", default=10000, type=int, help="Number of episodes to train for")
     parser.add_argument("--gamma", "-g", default=1, type=int, help="Gamma")
-    parser.add_argument("--timesteps", "-T", default=100, type=int, help="Number of steps per episode")
+    parser.add_argument("--timesteps", "-T", default=1000, type=int, help="Number of steps per episode")
 
     args = parser.parse_args()
 
@@ -153,6 +86,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     env = make_env()
+    torch.manual_seed(seed)
 
     in_size = env.observation_space.shape[0]
     num_actions = env.action_space.n
@@ -163,9 +97,10 @@ if __name__ == '__main__':
     batch_update = True
 
     writer = SummaryWriter()
-    runs = 30
+    runs = 1
 
     returns_over_runs = np.zeros(shape=(runs, episodes))
+    # looping over different runs
     for run in range(runs):
 
         network = network_factory(in_size=in_size, num_actions=num_actions, env=env)
@@ -203,18 +138,6 @@ if __name__ == '__main__':
 
                 # env.render()
 
-                if not batch_update:
-                    R = reward + (gamma * R)
-                    policy_loss = -1* a_log_prob * (R - state_value.item())
-                    value_loss = torch.nn.functional.mse_loss(state_value, torch.tensor([R]), reduction='mean')
-
-                    loss = policy_loss + value_loss
-
-                    print(loss.item())
-
-                    loss.backward()
-                    optimizer.step()
-
             if batch_update:
                 G = []
                 for r in episode_reward:
@@ -236,25 +159,53 @@ if __name__ == '__main__':
 
                 optimizer.zero_grad()
 
-                loss = torch.stack(p_losses).sum() + torch.stack(v_losses).sum()
+                policy_loss = torch.stack(p_losses).sum()
+                value_loss =  torch.stack(v_losses).sum()
+                loss = policy_loss + value_loss
                 # print(loss.item())
                 loss.backward()
                 optimizer.step()
+
+                # tensorboard Plotting
+                writer.add_scalar('Loss/total', loss, ep)
+                writer.add_scalar('Loss/Policy', policy_loss, ep)
+                writer.add_scalar('Loss/StateValue', value_loss, ep)
+
+                writer.add_scalar('ValueModel/Linear1.weight', torch.mean(network.v1.weight.grad), ep)
+                writer.add_scalar('ValueModel/Linear2.weight', torch.mean(network.v2.weight.grad), ep)
+
+                writer.add_scalar('ValueModel/Linear1.bias', torch.mean(network.v1.bias.grad), ep)
+                writer.add_scalar('ValueModel/Linear2.bias', torch.mean(network.v2.bias.grad), ep)
+
+                writer.add_scalar('policy/Linear1.weight', torch.mean(network.p1.weight.grad), ep)
+                writer.add_scalar('policy/Linear2.weight', torch.mean(network.p2.weight.grad), ep)
+
+                writer.add_scalar('policy/Linear1.bias', torch.mean(network.p1.bias.grad), ep)
+                writer.add_scalar('policy/Linear2.bias', torch.mean(network.p2.bias.grad), ep)
 
             ep_returns.append(total_reward)
 
             returns_over_runs[run][ep] = total_reward
 
-    plot_means_1(returns_over_runs, runs, episodes)
+    if runs == 1:
+        means = sliding_window(ep_returns, 100)
+        plt.plot(means)
+        plt.title("Episode Return")
+        plt.xlabel("Episode")
+        plt.ylabel("Average Return (Sliding Window 100)")
+        plt.show()
+
+        for ep in range(1, episodes+1):
+            writer.add_scalar('Average Returns per episode', means[ep-1], ep)
+
+    else:
+        plot_means_1(returns_over_runs, runs, episodes)
+        plot_means_2(returns_over_runs, runs, episodes)
+        plot_means_3(returns_over_runs, runs, episodes)
+
+        plot_means_4(returns_over_runs, runs, episodes)
+
     # plot_means_2(returns_over_runs, runs)
-
-    # writer.add_scalar('Average Returns per episode', sliding_window(ep_returns, 100), episodes)
-
-    # plt.plot(sliding_window(ep_returns, 100))
-    # plt.title("Episode Return")
-    # plt.xlabel("Episode")
-    # plt.ylabel("Average Return (Sliding Window 100)")
-    # plt.show()
 
     # save the trained network
     torch.save(network, 'model.pt')

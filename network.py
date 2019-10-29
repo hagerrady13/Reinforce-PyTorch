@@ -23,12 +23,15 @@ class PolicyNetwork2(nn.Module):
     def __init__(self, in_size, num_actions):
         super(PolicyNetwork2, self).__init__()
         self.p1 = torch.nn.Linear(in_size, 128)
+
+        self.dropout = nn.Dropout(p=0.6)
+
         self.p2 = torch.nn.Linear(128, num_actions)
 
     def forward(self, inputs):
         # action network
         # print("input: " , inputs.shape)
-        x = torch.nn.functional.relu(self.p1(inputs))
+        x = torch.nn.functional.relu(self.dropout(self.p1(inputs)))
         # print("After P1: ", x.shape)
         action_probs = torch.nn.functional.softmax(self.p2(x), -1)
         # print("After P2: ", x.shape)
@@ -55,27 +58,22 @@ class PolicyNetwork2(nn.Module):
 class PolicyNetwork(nn.Module):
     def __init__(self, in_size, num_actions):
         super(PolicyNetwork, self).__init__()
+        # action network definition
         self.p1 = torch.nn.Linear(in_size, 128)
         self.p2 = torch.nn.Linear(128, num_actions)
 
+        # value network definition
         self.v1 = torch.nn.Linear(in_size, 64)
         self.v2 = torch.nn.Linear(64, 1)
 
     def forward(self, inputs):
         # action network
-        # print("input: " , inputs.shape)
         x = torch.nn.functional.relu(self.p1(inputs))
-        # print("After P1: ", x.shape)
         action_probs = torch.nn.functional.softmax(self.p2(x), -1)
-        # print("After P2: ", x.shape)
-        # print("Final P: ", action_probs.shape)
 
-        # state-value network
+        # value network
         x = torch.nn.functional.relu(self.v1(inputs))
-        # print("After V1: ", x.shape)
-
         state_value = self.v2(x)
-        # print("After V2: ", state_value.shape)
 
         return action_probs, state_value
 
@@ -86,11 +84,10 @@ class PolicyNetwork(nn.Module):
         torch.tensor(obs, device=device, dtype=torch.float32)
         :return: Should return a single integer specifying the action
         """
-        # print("inputs to the function get_action: ", inputs.shape)
         action_probs, state_value = self.forward(inputs)
-        # print("action probs: ", action_probs)
+
         dist = torch.distributions.Categorical(action_probs) # same as multinomial
         action = dist.sample()
         action_log_prob = dist.log_prob(action)
-        # self.state_value = state_value
+
         return action.item(), action_log_prob, state_value
