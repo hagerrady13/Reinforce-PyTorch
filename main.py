@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
 
 """
-CMPUT 652, Fall 2019 - Assignment #2
+CMPUT 652, Fall 2019 - Assignment #2 solution - Hager Radi
 
 __author__ = "Craig Sherstan"
 __copyright__ = "Copyright 2019"
 __credits__ = ["Craig Sherstan"]
 __email__ = "sherstan@ualberta.ca"
-"""
-
-"""
-You are free to additional imports as needed... except please do not add any additional packages or dependencies to
-your virtualenv other than those specified in requirements.txt. If I can't run it using the virtualenv I specified,
-without any additional installs, there will be a penalty.
-
-I've included a number of imports that I think you'll need.
 """
 import torch
 import matplotlib
@@ -27,7 +19,7 @@ import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 import os
-import utils
+from utils import *
 
 # prevents type-3 fonts, which some conferences disallow.
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -73,7 +65,7 @@ if __name__ == '__main__':
     python main.py --episodes 10000
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes", "-e", default=10000, type=int, help="Number of episodes to train for")
+    parser.add_argument("--episodes", "-e", default=5000, type=int, help="Number of episodes to train for")
     parser.add_argument("--gamma", "-g", default=1, type=int, help="Gamma")
     parser.add_argument("--timesteps", "-T", default=1000, type=int, help="Number of steps per episode")
 
@@ -86,7 +78,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     env = make_env()
-    torch.manual_seed(seed)
+    # torch.manual_seed(seed)
 
     in_size = env.observation_space.shape[0]
     num_actions = env.action_space.n
@@ -148,7 +140,6 @@ if __name__ == '__main__':
 
                 # apply whitening
                 # G = (G - G.mean()) / (G.std() + eps) # To have small values of Loss
-                # print("after", G[0])
 
                 p_losses  = []
                 v_losses = []
@@ -171,17 +162,17 @@ if __name__ == '__main__':
                 writer.add_scalar('Loss/Policy', policy_loss, ep)
                 writer.add_scalar('Loss/StateValue', value_loss, ep)
 
-                writer.add_scalar('ValueModel/Linear1.weight', torch.mean(network.v1.weight.grad), ep)
-                writer.add_scalar('ValueModel/Linear2.weight', torch.mean(network.v2.weight.grad), ep)
+                writer.add_scalar('ValueModel/Linear1.weight', torch.mean(network.v1.weight.grad)**2, ep)
+                writer.add_scalar('ValueModel/Linear2.weight', torch.mean(network.v2.weight.grad)**2, ep)
 
-                writer.add_scalar('ValueModel/Linear1.bias', torch.mean(network.v1.bias.grad), ep)
-                writer.add_scalar('ValueModel/Linear2.bias', torch.mean(network.v2.bias.grad), ep)
+                writer.add_scalar('ValueModel/Linear1.bias', torch.mean(network.v1.bias.grad)**2, ep)
+                writer.add_scalar('ValueModel/Linear2.bias', torch.mean(network.v2.bias.grad)**2, ep)
 
-                writer.add_scalar('policy/Linear1.weight', torch.mean(network.p1.weight.grad), ep)
-                writer.add_scalar('policy/Linear2.weight', torch.mean(network.p2.weight.grad), ep)
+                writer.add_scalar('policy/Linear1.weight', torch.mean(network.p1.weight.grad)**2, ep)
+                writer.add_scalar('policy/Linear2.weight', torch.mean(network.p2.weight.grad)**2, ep)
 
-                writer.add_scalar('policy/Linear1.bias', torch.mean(network.p1.bias.grad), ep)
-                writer.add_scalar('policy/Linear2.bias', torch.mean(network.p2.bias.grad), ep)
+                writer.add_scalar('policy/Linear1.bias', torch.mean(network.p1.bias.grad)**2, ep)
+                writer.add_scalar('policy/Linear2.bias', torch.mean(network.p2.bias.grad)**2, ep)
 
             ep_returns.append(total_reward)
 
@@ -204,8 +195,6 @@ if __name__ == '__main__':
         plot_means_3(returns_over_runs, runs, episodes)
 
         plot_means_4(returns_over_runs, runs, episodes)
-
-    # plot_means_2(returns_over_runs, runs)
 
     # save the trained network
     torch.save(network, 'model.pt')
