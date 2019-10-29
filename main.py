@@ -33,32 +33,6 @@ def make_env():
     env.seed(seed)
     return env
 
-
-def sliding_window(data, N):
-    """
-    For each index, k, in data we average over the window from k-N-1 to k. The beginning handles incomplete buffers,
-    that is it only takes the average over what has actually been seen.
-    :param data: A numpy array, length M
-    :param N: The length of the sliding window.
-    :return: A numpy array, length M, containing smoothed averaging.
-    """
-
-    idx = 0
-    window = np.zeros(N)
-    smoothed = np.zeros(len(data))
-
-    for i in range(len(data)):
-        window[idx] = data[i]
-        idx += 1
-
-        smoothed[i] = window[0:idx].mean()
-
-        if idx == N:
-            window[0:-1] = window[1:]
-            idx = N - 1
-
-    return smoothed
-
 if __name__ == '__main__':
 
     """
@@ -158,21 +132,22 @@ if __name__ == '__main__':
                 optimizer.step()
 
                 # tensorboard Plotting
-                writer.add_scalar('Loss/total', loss, ep)
-                writer.add_scalar('Loss/Policy', policy_loss, ep)
-                writer.add_scalar('Loss/StateValue', value_loss, ep)
+                if runs == 1:
+                    writer.add_scalar('Loss/total', loss, ep)
+                    writer.add_scalar('Loss/Policy', policy_loss, ep)
+                    writer.add_scalar('Loss/StateValue', value_loss, ep)
 
-                writer.add_scalar('ValueModel/Linear1.weight', torch.mean(network.v1.weight.grad)**2, ep)
-                writer.add_scalar('ValueModel/Linear2.weight', torch.mean(network.v2.weight.grad)**2, ep)
+                    writer.add_scalar('ValueModel/Linear1.weight', torch.mean(network.v1.weight.grad)**2, ep)
+                    writer.add_scalar('ValueModel/Linear2.weight', torch.mean(network.v2.weight.grad)**2, ep)
 
-                writer.add_scalar('ValueModel/Linear1.bias', torch.mean(network.v1.bias.grad)**2, ep)
-                writer.add_scalar('ValueModel/Linear2.bias', torch.mean(network.v2.bias.grad)**2, ep)
+                    writer.add_scalar('ValueModel/Linear1.bias', torch.mean(network.v1.bias.grad)**2, ep)
+                    writer.add_scalar('ValueModel/Linear2.bias', torch.mean(network.v2.bias.grad)**2, ep)
 
-                writer.add_scalar('policy/Linear1.weight', torch.mean(network.p1.weight.grad)**2, ep)
-                writer.add_scalar('policy/Linear2.weight', torch.mean(network.p2.weight.grad)**2, ep)
+                    writer.add_scalar('policy/Linear1.weight', torch.mean(network.p1.weight.grad)**2, ep)
+                    writer.add_scalar('policy/Linear2.weight', torch.mean(network.p2.weight.grad)**2, ep)
 
-                writer.add_scalar('policy/Linear1.bias', torch.mean(network.p1.bias.grad)**2, ep)
-                writer.add_scalar('policy/Linear2.bias', torch.mean(network.p2.bias.grad)**2, ep)
+                    writer.add_scalar('policy/Linear1.bias', torch.mean(network.p1.bias.grad)**2, ep)
+                    writer.add_scalar('policy/Linear2.bias', torch.mean(network.p2.bias.grad)**2, ep)
 
             ep_returns.append(total_reward)
 
