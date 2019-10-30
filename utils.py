@@ -27,7 +27,7 @@ def sliding_window(data, N):
             idx = N - 1
 
     return smoothed
-    
+
 def plot_means_1(returns_over_runs, runs, episodes):
     ep_returns_means = []
     ep_returns_stds = []
@@ -40,22 +40,22 @@ def plot_means_1(returns_over_runs, runs, episodes):
     x = np.arange(1, episodes+1)
 
     # averaging 3 plots
-    mean = np.mean(returns_over_runs[run_3], axis=0)
-    std = np.std(returns_over_runs[run_3], axis=0)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='blue' , label='3 averaged runs')
-    ax.fill_between(x, y-std , y+std, facecolor='blue', alpha=0.1)
-
-    # averaging 10 plots
-    mean = np.mean(returns_over_runs[run_10], axis=0)
-    std = np.std(returns_over_runs[run_10], axis=0)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='green', label='10 averaged runs')
-    ax.fill_between(x, y-std , y+std, facecolor='green', alpha=0.1)
+    # mean = np.mean(returns_over_runs[run_3], axis=0)
+    # std = np.std(returns_over_runs[run_3], axis=0)
+    #
+    # y =  sliding_window(mean, 100)
+    #
+    # ax.plot(x, y, lw=2, color='blue' , label='3 averaged runs')
+    # ax.fill_between(x, y-std , y+std, facecolor='blue', alpha=0.1)
+    #
+    # # averaging 10 plots
+    # mean = np.mean(returns_over_runs[run_10], axis=0)
+    # std = np.std(returns_over_runs[run_10], axis=0)
+    #
+    # y =  sliding_window(mean, 100)
+    #
+    # ax.plot(x, y, lw=2, color='green', label='10 averaged runs')
+    # ax.fill_between(x, y-std , y+std, facecolor='green', alpha=0.1)
 
     # averaging 30 plots
     mean = np.mean(returns_over_runs, axis=0)
@@ -89,22 +89,22 @@ def plot_means_2(returns_over_runs, runs, episodes):
     x = np.arange(1, episodes+1)
 
     # averaging 3 plots
-    mean = np.mean(returns_over_runs[run_3], axis=0)
-    std = np.std(returns_over_runs[run_3], axis=0) / np.sqrt(3)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='blue' , label='3 averaged runs')
-    ax.fill_between(x, y-std , y+std, facecolor='blue', alpha=0.1)
-
-    # averaging 10 plots
-    mean = np.mean(returns_over_runs[run_10], axis=0)
-    std = np.std(returns_over_runs[run_10], axis=0) / np.sqrt(10)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='green', label='10 averaged runs')
-    ax.fill_between(x, y-std , y+std, facecolor='green', alpha=0.1)
+    # mean = np.mean(returns_over_runs[run_3], axis=0)
+    # std = np.std(returns_over_runs[run_3], axis=0) / np.sqrt(3)
+    #
+    # y =  sliding_window(mean, 100)
+    #
+    # ax.plot(x, y, lw=2, color='blue' , label='3 averaged runs')
+    # ax.fill_between(x, y-std , y+std, facecolor='blue', alpha=0.1)
+    #
+    # # averaging 10 plots
+    # mean = np.mean(returns_over_runs[run_10], axis=0)
+    # std = np.std(returns_over_runs[run_10], axis=0) / np.sqrt(10)
+    #
+    # y =  sliding_window(mean, 100)
+    #
+    # ax.plot(x, y, lw=2, color='green', label='10 averaged runs')
+    # ax.fill_between(x, y-std , y+std, facecolor='green', alpha=0.1)
 
     # averaging 30 plots
     mean = np.mean(returns_over_runs, axis=0)
@@ -138,24 +138,24 @@ def plot_means_3(returns_over_runs, runs, episodes):
     x = np.arange(1, episodes+1)
 
     # averaging 3 plots
-    mean = np.mean(returns_over_runs[run_3], axis=0)
-    min = np.min(returns_over_runs[run_3], axis=0)
-    max = np.max(returns_over_runs[run_3], axis=0)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='blue' , label='3 averaged runs')
-    ax.fill_between(x, min , max, facecolor='blue', alpha=0.1)
-
-    # averaging 10 plots
-    mean = np.mean(returns_over_runs[run_10], axis=0)
-    min = np.min(returns_over_runs[run_10], axis=0)
-    max = np.max(returns_over_runs[run_10], axis=0)
-
-    y =  sliding_window(mean, 100)
-
-    ax.plot(x, y, lw=2, color='green', label='10 averaged runs')
-    ax.fill_between(x, min , max, facecolor='green', alpha=0.1)
+    # mean = np.mean(returns_over_runs[run_3], axis=0)
+    # min = np.min(returns_over_runs[run_3], axis=0)
+    # max = np.max(returns_over_runs[run_3], axis=0)
+    #
+    # y =  sliding_window(mean, 100)
+    #
+    # ax.plot(x, y, lw=2, color='blue' , label='3 averaged runs')
+    # ax.fill_between(x, min , max, facecolor='blue', alpha=0.1)
+    #
+    # # averaging 10 plots
+    # mean = np.mean(returns_over_runs[run_10], axis=0)
+    # min = np.min(returns_over_runs[run_10], axis=0)
+    # max = np.max(returns_over_runs[run_10], axis=0)
+    #
+    # y =  sliding_window(mean, 100)
+    #
+    # ax.plot(x, y, lw=2, color='green', label='10 averaged runs')
+    # ax.fill_between(x, min , max, facecolor='green', alpha=0.1)
 
     # averaging 30 plots
     mean = np.mean(returns_over_runs, axis=0)

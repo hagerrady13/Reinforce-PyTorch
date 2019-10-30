@@ -39,7 +39,7 @@ if __name__ == '__main__':
     python main.py --episodes 10000
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes", "-e", default=5, type=int, help="Number of episodes to train for")
+    parser.add_argument("--episodes", "-e", default=10000, type=int, help="Number of episodes to train for")
     parser.add_argument("--gamma", "-g", default=1, type=int, help="Gamma")
     parser.add_argument("--timesteps", "-T", default=1000, type=int, help="Number of steps per episode")
 
@@ -52,15 +52,12 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     env = make_env()
-    # torch.manual_seed(seed)
+    torch.manual_seed(seed)
 
     in_size = env.observation_space.shape[0]
     num_actions = env.action_space.n
 
     eps = np.finfo(np.float32).eps.item()
-
-    # updating per each time step or per episode
-    batch_update = True
 
     writer = SummaryWriter()
     runs = 1
@@ -74,7 +71,7 @@ if __name__ == '__main__':
 
         print(network)
         # alpha_w, alpha_theta are the same
-        optimizer = torch.optim.Adam(network.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
 
         ep_returns = []
 
@@ -136,17 +133,9 @@ if __name__ == '__main__':
                 writer.add_scalar('Loss/Policy', policy_loss, ep)
                 writer.add_scalar('Loss/StateValue', value_loss, ep)
 
-                writer.add_scalar('ValueModel/Linear1.weight', torch.mean(network.v1.weight.grad)**2, ep)
-                writer.add_scalar('ValueModel/Linear2.weight', torch.mean(network.v2.weight.grad)**2, ep)
-
-                writer.add_scalar('ValueModel/Linear1.bias', torch.mean(network.v1.bias.grad)**2, ep)
-                writer.add_scalar('ValueModel/Linear2.bias', torch.mean(network.v2.bias.grad)**2, ep)
-
-                writer.add_scalar('policy/Linear1.weight', torch.mean(network.p1.weight.grad)**2, ep)
-                writer.add_scalar('policy/Linear2.weight', torch.mean(network.p2.weight.grad)**2, ep)
-
-                writer.add_scalar('policy/Linear1.bias', torch.mean(network.p1.bias.grad)**2, ep)
-                writer.add_scalar('policy/Linear2.bias', torch.mean(network.p2.bias.grad)**2, ep)
+                for name, param in network.named_parameters():
+                    # print(name, param)
+                    writer.add_scalar('gradient/'+str(name), torch.mean(torch.mul(param.grad, param.grad)), ep)
 
             ep_returns.append(total_reward)
 
@@ -168,7 +157,7 @@ if __name__ == '__main__':
         plot_means_2(returns_over_runs, runs, episodes)
         plot_means_3(returns_over_runs, runs, episodes)
 
-        plot_means_4(returns_over_runs, runs, episodes)
+        # plot_means_4(returns_over_runs, runs, episodes)
 
     # save the trained network
     torch.save(network, 'model.pt')

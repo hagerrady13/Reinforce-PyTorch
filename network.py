@@ -24,23 +24,23 @@ class PolicyNetwork(nn.Module):
     def __init__(self, in_size, num_actions):
         super(PolicyNetwork, self).__init__()
         # action network definition
-        self.p1 = torch.nn.Linear(in_size, 128)
-        self.p2 = torch.nn.Linear(128, num_actions)
+        self.policy_fc1 = torch.nn.Linear(in_size, 128)
+        self.policy_fc2 = torch.nn.Linear(128, num_actions)
         self.relu = torch.nn.ReLU()
         self.softmax = torch.nn.Softmax(dim=-1)
 
         # value network definition
-        self.v1 = torch.nn.Linear(in_size, 64)
-        self.v2 = torch.nn.Linear(64, 1)
+        self.value_fc1 = torch.nn.Linear(in_size, 64)
+        self.value_fc2 = torch.nn.Linear(64, 1)
 
     def forward(self, inputs):
         # action network
-        x = self.relu(self.p1(inputs))
-        action_probs = self.softmax(self.p2(x))
+        x = self.relu(self.policy_fc1(inputs))
+        action_probs = self.softmax(self.policy_fc2(x))
 
         # value network
-        x = self.relu(self.v1(inputs))
-        state_value = self.v2(x)
+        x = self.relu(self.value_fc1(inputs))
+        state_value = self.value_fc2(x)
 
         return action_probs, state_value
 
@@ -66,13 +66,13 @@ to test whitening without the parameterized state value
 class PolicyNetwork2(nn.Module):
     def __init__(self, in_size, num_actions):
         super(PolicyNetwork2, self).__init__()
-        self.p1 = torch.nn.Linear(in_size, 128)
-        self.p2 = torch.nn.Linear(128, num_actions)
+        self.policy_fc1 = torch.nn.Linear(in_size, 128)
+        self.policy_fc2 = torch.nn.Linear(128, num_actions)
 
     def forward(self, inputs):
         # action network
-        x = torch.nn.functional.relu(self.p1(inputs))
-        action_probs = torch.nn.functional.softmax(self.p2(x), -1)
+        x = torch.nn.functional.relu(self.policy_fc1(inputs))
+        action_probs = torch.nn.functional.softmax(self.policy_fc2(x), -1)
 
         return action_probs, None
 
