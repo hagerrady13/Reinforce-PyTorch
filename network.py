@@ -1,10 +1,7 @@
 """
 CMPUT 652, Fall 2019 - Assignment #2
 
-__author__ = "Craig Sherstan"
-__copyright__ = "Copyright 2019"
-__credits__ = ["Craig Sherstan"]
-__email__ = "sherstan@ualberta.ca"
+__author__ = "Hager Radi"
 """
 
 from torch import nn

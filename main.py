@@ -3,10 +3,8 @@
 """
 CMPUT 652, Fall 2019 - Assignment #2 solution - Hager Radi
 
-__author__ = "Craig Sherstan"
+__author__ = "Hager Radi"
 __copyright__ = "Copyright 2019"
-__credits__ = ["Craig Sherstan"]
-__email__ = "sherstan@ualberta.ca"
 """
 import torch
 import matplotlib
@@ -30,7 +28,7 @@ seed = 999
 
 def make_env():
     env = gym.make('CartPole-v0')
-    env.seed(seed)
+    # env.seed(seed)
     return env
 
 if __name__ == '__main__':
@@ -39,7 +37,7 @@ if __name__ == '__main__':
     python main.py --episodes 10000
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes", "-e", default=10000, type=int, help="Number of episodes to train for")
+    parser.add_argument("--episodes", "-e", default=1000, type=int, help="Number of episodes to train for")
     parser.add_argument("--gamma", "-g", default=1, type=int, help="Gamma")
     parser.add_argument("--timesteps", "-T", default=1000, type=int, help="Number of steps per episode")
 
@@ -83,7 +81,7 @@ if __name__ == '__main__':
             R = 0
             total_reward = 0
 
-            print("############### Starting Episode: " , ep)
+            print(run, "############### Starting Episode: " , ep)
 
             state = env.reset()
             for t in range(1, T):
@@ -152,13 +150,8 @@ if __name__ == '__main__':
         for ep in range(1, episodes+1):
             writer.add_scalar('Average Returns per episode', means[ep-1], ep)
 
-    else:
-        plot_means_1(returns_over_runs, runs, episodes)
-        plot_means_2(returns_over_runs, runs, episodes)
-        plot_means_3(returns_over_runs, runs, episodes)
-
-        # plot_means_4(returns_over_runs, runs, episodes)
+    np.save('returns_50k_baseline.npy', returns_over_runs)
 
     # save the trained network
-    torch.save(network, 'model.pt')
-    torch.save(network.state_dict(), 'checkpoint.pkl')
+    torch.save(network, 'model_50k.pt')
+    torch.save(network.state_dict(), 'checkpoint_50k.pkl')
