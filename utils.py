@@ -10,6 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+from main import sliding_window
 # plotting averaged runs with their standard deviations
 def plot_means_1(returns_over_runs, runs, episodes):
     ep_returns_means = []
