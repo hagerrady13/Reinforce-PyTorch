@@ -1,33 +1,16 @@
+"""
+CMPUT 652, Fall 2019 - Assignment #2
+
+__author__ = "Hager Radi"
+
+utility functions for plotting
+"""
 import random
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-def sliding_window(data, N):
-    """
-    For each index, k, in data we average over the window from k-N-1 to k. The beginning handles incomplete buffers,
-    that is it only takes the average over what has actually been seen.
-    :param data: A numpy array, length M
-    :param N: The length of the sliding window.
-    :return: A numpy array, length M, containing smoothed averaging.
-    """
-
-    idx = 0
-    window = np.zeros(N)
-    smoothed = np.zeros(len(data))
-
-    for i in range(len(data)):
-        window[idx] = data[i]
-        idx += 1
-
-        smoothed[i] = window[0:idx].mean()
-
-        if idx == N:
-            window[0:-1] = window[1:]
-            idx = N - 1
-
-    return smoothed
-
+# plotting averaged runs with their standard deviations
 def plot_means_1(returns_over_runs, runs, episodes):
     ep_returns_means = []
     ep_returns_stds = []
@@ -77,6 +60,7 @@ def plot_means_1(returns_over_runs, runs, episodes):
     fig.savefig('1.png')
     plt.close(fig)
 
+# plotting averaged runs with their standard error
 def plot_means_2(returns_over_runs, runs, episodes):
     ep_returns_means = []
     ep_returns_stds = []
@@ -120,12 +104,13 @@ def plot_means_2(returns_over_runs, runs, episodes):
     ax.set_ylabel("Average Return (Sliding Window 100)")
     ax.set_xlabel("Episode")
     ax.set_title('Average runs with their standard error')
-    ax.legend(loc = 'best')
+    ax.legend(loc = 'lower right')
 
     # plt.show()
     fig.savefig('2.png')
     plt.close(fig)
 
+# plotting averaged runs with their min-max value (for self-check)
 def plot_means_3(returns_over_runs, runs, episodes):
     ep_returns_means = []
     ep_returns_stds = []
@@ -178,6 +163,7 @@ def plot_means_3(returns_over_runs, runs, episodes):
     fig.savefig('3.png')
     plt.close(fig)
 
+# plotting 3 averaged runs, 10 times
 def plot_means_4(returns_over_runs, runs, episodes):
     ep_returns = []
 
@@ -200,6 +186,7 @@ def plot_means_4(returns_over_runs, runs, episodes):
     fig.savefig('4.png')
     plt.close(fig)
 
+# plotting 30 averaged runs with their standard error
 def plot_means_5(data1, data2, runs, episodes):
     ep_returns_means = []
     ep_returns_stds = []
@@ -243,9 +230,9 @@ if __name__ == '__main__':
     runs = 30
     episodes = 2000
 
-    # plot_means_1(data2, runs, episodes)
-    # plot_means_2(data2, runs, episodes)
-    # plot_means_3(data2, runs, episodes)
+    plot_means_1(data2, runs, episodes)
+    plot_means_2(data2, runs, episodes)
+    plot_means_3(data2, runs, episodes)
     #
     # plot_means_4(data2, runs, episodes)
     plot_means_5(data1, data2, runs, episodes)

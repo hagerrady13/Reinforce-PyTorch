@@ -17,7 +17,6 @@ import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 import os
-from utils import *
 
 # prevents type-3 fonts, which some conferences disallow.
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -25,6 +24,31 @@ matplotlib.rcParams['ps.fonttype'] = 42
 matplotlib.use('TkAgg')
 
 seed = 999
+
+def sliding_window(data, N):
+    """
+    For each index, k, in data we average over the window from k-N-1 to k. The beginning handles incomplete buffers,
+    that is it only takes the average over what has actually been seen.
+    :param data: A numpy array, length M
+    :param N: The length of the sliding window.
+    :return: A numpy array, length M, containing smoothed averaging.
+    """
+
+    idx = 0
+    window = np.zeros(N)
+    smoothed = np.zeros(len(data))
+
+    for i in range(len(data)):
+        window[idx] = data[i]
+        idx += 1
+
+        smoothed[i] = window[0:idx].mean()
+
+        if idx == N:
+            window[0:-1] = window[1:]
+            idx = N - 1
+
+    return smoothed
 
 def make_env():
     env = gym.make('CartPole-v0')
@@ -50,7 +74,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     env = make_env()
-    torch.manual_seed(seed)
+    # torch.manual_seed(seed)
 
     in_size = env.observation_space.shape[0]
     num_actions = env.action_space.n
